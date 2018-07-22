@@ -603,7 +603,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 593842547}
-        m_MethodName: RestartGame
+        m_MethodName: HardRestartGame
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -695,7 +695,6 @@ MonoBehaviour:
     type: 2}
   CheckerPrefab: {fileID: 1098245831259028, guid: bca81b34153038643b8ccc715dde1dd8,
     type: 2}
-  IsComputerPlayer: 
 --- !u!4 &593842548
 Transform:
   m_ObjectHideFlags: 0

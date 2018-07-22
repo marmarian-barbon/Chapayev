@@ -12,13 +12,13 @@ public class ChessBoardManager : MonoBehaviour
     public static bool GameStarted;
     public GameObject ChessPlatePrefab;
     public GameObject CheckerPrefab;
-    public float PlateRadius { get; private set; }
-    private int ChessBoardRadius { get; set; }
+    public static float PlateRadius { get; private set; }
+    private static int ChessBoardRadius { get; set; }
     public static ChessBoardManager Instance { get; private set; }
     public static List<GameObject> ActiveCheckers;
-    public int TeamsNumber { get; private set; }
-    public Color[] TeamsColors { get; private set; }
-    private List<Vector3>[] TeamsPositions { get; set; }
+    public static int TeamsNumber { get; private set; }
+    public static Color[] TeamsColors { get; private set; }
+    private static List<Vector3>[] TeamsPositions { get; set; }
     public bool WaitingEndOfTurn { get; private set; }
     public static int EnemyCheckersOut { get; private set; }
     public static int OwnCheckersOut { get; private set; }
@@ -29,8 +29,11 @@ public class ChessBoardManager : MonoBehaviour
     private Rigidbody KnockedChecker;
     public static int TeamTurn { get; private set; }
     private static float ComputerFixedForce;
-    public bool[] IsComputerPlayer;
+    public static bool[] IsComputerPlayer;
     private static float MinVelocity { get; set; }
+    private static int[] StartPositions { get; set; }
+    private static int[] PositiveDirections { get; set; }
+    private static int[] WinPositions { get; set; }
 
     void KnockChecker(Vector3 swipe, float time)
     {
@@ -85,6 +88,7 @@ public class ChessBoardManager : MonoBehaviour
         Debug.Log(teamNumber.ToString() + " is out");
         ActiveCheckers.Remove(checker);
         Destroy(checker);
+        CheckForWinner();
     }
 
     public void PlayWithComputer()
@@ -97,7 +101,7 @@ public class ChessBoardManager : MonoBehaviour
             true
         };
 
-        RestartGame();
+        HardRestartGame();
     }
 
     public void PlayWithPlayer()
@@ -110,10 +114,26 @@ public class ChessBoardManager : MonoBehaviour
             false
         };
 
+        HardRestartGame();
+    }
+
+    public void HardRestartGame()
+    {
+        StartPositions = new int[TeamsNumber];
+        StartPositions[0] = -ChessBoardRadius;
+        StartPositions[1] = ChessBoardRadius - 1;
+
+        WinPositions = new int[TeamsNumber];
+        WinPositions[0] = StartPositions[1];
+        WinPositions[1] = StartPositions[0];
+
+        PositiveDirections = new int[TeamsNumber];
+        PositiveDirections[0] = +1;
+        PositiveDirections[1] = -1;
         RestartGame();
     }
 
-    public void RestartGame()
+    public static void RestartGame()
     {
         OwnCheckersOut = 0;
         EnemyCheckersOut = 0;
@@ -135,20 +155,20 @@ public class ChessBoardManager : MonoBehaviour
         var fullPlane = Instantiate(FullPlane, Vector3.zero, Quaternion.identity);
         var teamNumber = 0;
         var color = TeamsColors[teamNumber];
-        var z = -this.ChessBoardRadius;
+        var z = -ChessBoardRadius;
         var zIncrementation = 1;
-        for (var x = -this.ChessBoardRadius; x < this.ChessBoardRadius; x++)
+        for (var x = -ChessBoardRadius; x < ChessBoardRadius; x++)
         {
-            while (z >= -this.ChessBoardRadius && z < this.ChessBoardRadius)
+            while (z >= -ChessBoardRadius && z < ChessBoardRadius)
             {
-                var platePosition = new Vector3(x + this.PlateRadius, 0f, z + this.PlateRadius);
-                var newPlate = Instantiate(this.ChessPlatePrefab, platePosition, Quaternion.identity);
+                var platePosition = new Vector3(x + PlateRadius, 0f, z + PlateRadius);
+                var newPlate = Instantiate(ChessPlatePrefab, platePosition, Quaternion.identity);
                 var renderer = newPlate.GetComponent<Renderer>();
                 renderer.material.color = color;
 
                 z += zIncrementation;
                 teamNumber += 1;
-                teamNumber %= this.TeamsNumber;
+                teamNumber %= TeamsNumber;
                 color = TeamsColors[teamNumber];
             }
 
@@ -157,7 +177,7 @@ public class ChessBoardManager : MonoBehaviour
         }
 
         var walls = new GameObject[6];
-        var wallRadius = ((this.ChessBoardRadius * 2) + 1) * this.PlateRadius;
+        var wallRadius = ((ChessBoardRadius * 2) + 1) * PlateRadius;
         var positions = new Vector3[]
         {
             new Vector3(+wallRadius, 0f, 0f),
@@ -180,19 +200,19 @@ public class ChessBoardManager : MonoBehaviour
 
         for (var i = 0; i < 6; i++)
         {
-            walls[i] = Instantiate(this.TriggerWall, positions[i], rotations[i]);
+            walls[i] = Instantiate(TriggerWall, positions[i], rotations[i]);
             walls[i].transform.localScale.Set(wallRadius, 0f, wallRadius);
         }
     }
 
-    void SwitchPauseTo(bool pause)
+    static void SwitchPauseTo(bool pause)
     {
         Paused = pause;
-        this.PauseMenu.SetActive(pause);
+        Instance.PauseMenu.SetActive(pause);
         if (pause)
         {
             Time.timeScale = 0f;
-            RestartButton.SetActive(GameStarted);
+            Instance.RestartButton.SetActive(GameStarted);
         }
         else
         {
@@ -205,48 +225,47 @@ public class ChessBoardManager : MonoBehaviour
         Instance = this;
 
         ForceScale = 100;
-        this.SwitchPauseTo(true);
+        SwitchPauseTo(true);
         GameStarted = false;
-        this.TeamsNumber = 2;
+        TeamsNumber = 2;
         TeamTurn = 0;
-        this.TeamsColors = new Color[] { Color.white, Color.black };
+        TeamsColors = new Color[] { Color.white, Color.black };
         IsComputerPlayer = new bool[] { false, true };
-        this.ChessBoardRadius = 4;
-        this.PlateRadius = 0.5f;
+        ChessBoardRadius = 4;
+        PlateRadius = 0.5f;
         ComputerFixedForce = 1000f;
         NormalForceOfKnock = new Vector3(0, 0.05f, 0);
-        MinVelocity = 0.01f;
+        MinVelocity = 0.00001f;
 
         this.GenerateChessboard();
     }
 
-    void GenerateCheckers()
+    static void GenerateCheckers()
     {
-        this.TeamsPositions = new List<Vector3>[this.TeamsNumber];
-        var z = new int[] { -4, 3 };
-        var checkersHeight = this.CheckerPrefab.transform.localScale.y;
-        for (var teamNumber = 0; teamNumber < this.TeamsNumber; teamNumber++)
+        TeamsPositions = new List<Vector3>[TeamsNumber];
+        var checkersHeight = Instance.CheckerPrefab.transform.localScale.y;
+        for (var teamNumber = 0; teamNumber < TeamsNumber; teamNumber++)
         {
-            this.TeamsPositions[teamNumber] = new List<Vector3>();
+            TeamsPositions[teamNumber] = new List<Vector3>();
         }
 
-        for (var x = -this.ChessBoardRadius; x < this.ChessBoardRadius; x++)
+        for (var x = -ChessBoardRadius; x < ChessBoardRadius; x++)
         {
-            for (var teamNumber = 0; teamNumber < this.TeamsNumber; teamNumber++)
+            for (var teamNumber = 0; teamNumber < TeamsNumber; teamNumber++)
             {
-                this.TeamsPositions[teamNumber].Add(new Vector3(x + this.PlateRadius, checkersHeight, z[teamNumber] + this.PlateRadius));
+                TeamsPositions[teamNumber].Add(new Vector3(x + PlateRadius, checkersHeight, StartPositions[teamNumber] + PlateRadius));
             }
         }
 
         ActiveCheckers = new List<GameObject>();
 
-        for (var teamNumber = 0; teamNumber < this.TeamsNumber; teamNumber++)
+        for (var teamNumber = 0; teamNumber < TeamsNumber; teamNumber++)
         {
-            var teamPositions = this.TeamsPositions[teamNumber];
-            var color = this.TeamsColors[teamNumber];
+            var teamPositions = TeamsPositions[teamNumber];
+            var color = TeamsColors[teamNumber];
             foreach (var position in teamPositions)
             {
-                var newChecker = Instantiate(this.CheckerPrefab, position, Quaternion.identity);
+                var newChecker = Instantiate(Instance.CheckerPrefab, position, Quaternion.identity);
                 newChecker.GetComponent<Checker>().TeamNumber = teamNumber;
                 ActiveCheckers.Add(newChecker);
                 var renderer = newChecker.GetComponent<Renderer>();
@@ -255,11 +274,46 @@ public class ChessBoardManager : MonoBehaviour
         }
     }
 
+    static void CheckForWinner()
+    {
+        var checkersLeftOfTeam = new int[TeamsNumber];
+        foreach (var checker in ActiveCheckers)
+        {
+            checkersLeftOfTeam[checker.GetComponent<Checker>().TeamNumber]++;
+        }
+
+        for (var teamNumber = 0; teamNumber < TeamsNumber; teamNumber++)
+        {
+            if (checkersLeftOfTeam[teamNumber] == ActiveCheckers.Count)
+            {
+                TeamTurn = teamNumber;
+                StartPositions[teamNumber] += PositiveDirections[teamNumber];
+                for (var anotherNumber = 0; anotherNumber < TeamsNumber; anotherNumber++)
+                {
+                    if (anotherNumber != teamNumber && StartPositions[anotherNumber] == StartPositions[teamNumber])
+                    {
+                        StartPositions[anotherNumber] -= PositiveDirections[anotherNumber];
+                    }
+                }
+
+                if (StartPositions[teamNumber] == WinPositions[teamNumber])
+                {
+                    Debug.Log("Team " + teamNumber.ToString() + " won!");
+                    Instance.HardRestartGame();
+                    return;
+                }
+
+                RestartGame();
+                return;
+            }
+        }
+    }
+
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            this.SwitchPauseTo(!Paused);
+            SwitchPauseTo(!Paused);
         }
 
         if (WaitingEndOfTurn)
@@ -280,39 +334,28 @@ public class ChessBoardManager : MonoBehaviour
                 }
                 else
                 {
-                    var checkersLeftOfTeam = new int[TeamsNumber];
-                    foreach (var checker in ActiveCheckers)
+                    CheckForWinner();
+
+                    if (OwnCheckersOut != 0 || EnemyCheckersOut == 0)
                     {
-                        checkersLeftOfTeam[checker.GetComponent<Checker>().TeamNumber]++;
+                        TeamTurn++;
+                        TeamTurn %= TeamsNumber;
+                        //Debug.Log("Turn of team " + TeamTurn.ToString() + " with " + checkersLeftOfTeam[TeamTurn].ToString() + " checkers left");
                     }
 
-                    for (var teamNumber = 0; teamNumber< TeamsNumber; teamNumber++)
-                    {
-                        if (checkersLeftOfTeam[teamNumber] == ActiveCheckers.Count)
-                        {
-                            TeamTurn = teamNumber;
-                            RestartGame();
-                            return;
-                        }
-                    }
+                    OwnCheckersOut = 0;
+                    EnemyCheckersOut = 0;
                 }
 
-                if (OwnCheckersOut != 0 || EnemyCheckersOut == 0)
-                {
-                    TeamTurn++;
-                    TeamTurn %= TeamsNumber;
-                }
-
-                OwnCheckersOut = 0;
-                EnemyCheckersOut = 0;
+                
             }
         }
         else
         {
             if (IsComputerPlayer[TeamTurn])
             {
-                ComputerKnockChecker();
                 WaitingEndOfTurn = true;
+                ComputerKnockChecker();
             }
         }
 
@@ -346,10 +389,10 @@ public class ChessBoardManager : MonoBehaviour
             Debug.Log("Swipe Finished");
             if (this.KnockedChecker != null)
             {
+                this.WaitingEndOfTurn = true;
                 var swipe = Input.mousePosition - this.SwipeBeginPosition;
                 var time = Time.time - this.SwipeBeginTime;
                 this.KnockChecker(swipe, time);
-                this.WaitingEndOfTurn = true;
             }
             else
             {
