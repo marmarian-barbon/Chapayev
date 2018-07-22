@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: deed4d4845f4da44999304966b0bc6ae
+timeCreated: 1532122801
+licenseType: Free
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - ChessPlatePrefab: {fileID: 1847472636560860, guid: 8135e37fec8cf34479da0039b65ed6f9,
+      type: 2}
+  - CheckerPrefab: {fileID: 1663102274826018, guid: bca81b34153038643b8ccc715dde1dd8,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
